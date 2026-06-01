@@ -1,14 +1,15 @@
 // app/(auth)/login/page.tsx
-
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { loginAction } from "@/lib/auth";
 import { Eye, EyeOff, ShieldCheck, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
-  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("next") ?? "/dashboard";
+  const expired = searchParams.get("reason") === "session_expired";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,11 +23,10 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await loginAction(email.trim().toLowerCase(), password);
-      router.replace("/dashboard");
+      await loginAction(email.trim().toLowerCase(), password, redirectTo);
     } catch (err: any) {
+      if (err?.digest?.startsWith("NEXT_REDIRECT")) throw err;
       setError(err.message ?? "Login failed. Please try again.");
-    } finally {
       setLoading(false);
     }
   };
@@ -34,7 +34,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-950 via-brand-800 to-blue-900 px-4">
       <div className="w-full max-w-md">
-        {/* Logo / brand */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur mb-4">
             <ShieldCheck className="w-8 h-8 text-white" />
@@ -47,11 +46,16 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Card */}
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <h2 className="text-xl font-semibold text-zinc-800 mb-6">
             Sign in to your account
           </h2>
+
+          {expired && !error && (
+            <div className="mb-5 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700">
+              Your session expired. Please sign in again.
+            </div>
+          )}
 
           {error && (
             <div className="mb-5 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
@@ -60,7 +64,6 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1.5">
                 Email address
@@ -71,12 +74,12 @@ export default function LoginPage() {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent transition"
+                disabled={loading}
+                className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent transition disabled:opacity-50"
                 placeholder="you@realvistaproperties.com"
               />
             </div>
 
-            {/* Password */}
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1.5">
                 Password
@@ -88,12 +91,14 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-200 px-4 py-3 pr-11 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent transition"
+                  disabled={loading}
+                  className="w-full rounded-xl border border-zinc-200 px-4 py-3 pr-11 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent transition disabled:opacity-50"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw((v) => !v)}
+                  tabIndex={-1}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
                 >
                   {showPw ? (
@@ -105,7 +110,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}

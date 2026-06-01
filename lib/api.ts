@@ -1,3 +1,5 @@
+// lib/api.ts
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export async function apiFetch<T>(
@@ -19,13 +21,10 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-
-    // ── Priority: explicit error/detail fields ────────────────────────────
     const message =
       body?.error ||
       body?.detail ||
       body?.message ||
-      // ── DRF field-level errors e.g. { code: ["already exists"] } ─────
       (() => {
         const fieldErrors = Object.entries(body)
           .filter(([, v]) => v)
@@ -37,11 +36,9 @@ export async function apiFetch<T>(
         return fieldErrors || null;
       })() ||
       `Request failed (${res.status})`;
-
     throw new Error(message);
   }
 
   if (res.status === 204) return undefined as unknown as T;
-
   return res.json() as Promise<T>;
 }

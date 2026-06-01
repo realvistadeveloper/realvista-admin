@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from "react";
 import { Bell, Search } from "lucide-react";
-import Sidebar from "@/components/sidebar/Sidebar";
+import Sidebar from "@/components/layout/Sidebar";
 import type { AdminUser } from "@/lib/types";
 
 interface Props {
