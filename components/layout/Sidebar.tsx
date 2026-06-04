@@ -24,10 +24,10 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Overview", href: "/overview", icon: LayoutDashboard },
   { label: "Users", href: "/users", icon: Users },
-  { label: "Agents", href: "/dashboard/agents", icon: UserCheck },
-  { label: "Properties", href: "/dashboard/properties", icon: Building2 },
+  { label: "Agents", href: "/agents", icon: UserCheck },
+  { label: "Properties", href: "/properties", icon: Building2 },
 ];
 
 export default function Sidebar({ user }: { user: AdminUser }) {
@@ -56,8 +56,8 @@ export default function Sidebar({ user }: { user: AdminUser }) {
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {visibleNav.map((item) => {
           const active =
-            item.href === "/dashboard"
-              ? pathname === "/dashboard"
+            item.href === "/overview"
+              ? pathname === "/overview"
               : pathname.startsWith(item.href);
 
           return (

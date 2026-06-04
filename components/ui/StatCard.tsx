@@ -22,6 +22,7 @@ interface StatCardProps {
   value: number | null | undefined;
   icon: LucideIcon;
   color?: Color;
+  placeholder?: string; // shown instead of "—" when value is null/undefined
 }
 
 export default function StatCard({
@@ -29,8 +30,14 @@ export default function StatCard({
   value,
   icon: Icon,
   color = "default",
+  placeholder,
 }: StatCardProps) {
   const c = colorMap[color];
+
+  const displayValue =
+    value != null ? value.toLocaleString() : (placeholder ?? "—");
+
+  const isPlaceholder = value == null && placeholder != null;
 
   return (
     <div className="bg-white rounded-2xl border border-zinc-100 p-5 flex flex-col gap-3">
@@ -43,8 +50,15 @@ export default function StatCard({
         <Icon className={clsx("w-4 h-4", c.icon)} />
       </div>
       <div>
-        <p className={clsx("text-2xl font-bold tabular-nums", c.value)}>
-          {value == null ? "—" : value.toLocaleString()}
+        <p
+          className={clsx(
+            "font-bold tabular-nums",
+            isPlaceholder
+              ? "text-sm text-zinc-400 italic"
+              : clsx("text-2xl", c.value),
+          )}
+        >
+          {displayValue}
         </p>
         <p className="text-xs text-zinc-400 mt-0.5">{label}</p>
       </div>
