@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 @theme {
   /* ── SuperPrep Brand Palette (#348b8b) ─────────────────────────────── */

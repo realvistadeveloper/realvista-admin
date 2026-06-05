@@ -21,6 +21,23 @@ export async function toggleUserActiveAction(userId: number) {
   revalidatePath("/users");
 }
 
+// ── Toggle agent ──────────────────────────────────────────────────────────────
+
+export async function toggleUserAgentAction(userId: number) {
+  const { accessToken } = await requireAccessLevel(5);
+
+  const result = await apiFetch<{ is_agent: boolean; detail: string }>(
+    `/api/admin/all-users/${userId}/toggle-agent/`,
+    { method: "POST" },
+    accessToken,
+  );
+
+  revalidatePath(`/users/${userId}`);
+  revalidatePath("/users");
+
+  return result;
+}
+
 // ── Update user ───────────────────────────────────────────────────────────────
 
 export async function updateUserAction(
@@ -38,10 +55,7 @@ export async function updateUserAction(
 
   const updated = await apiFetch(
     `/api/admin/all-users/${userId}/`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    },
+    { method: "PATCH", body: JSON.stringify(payload) },
     accessToken,
   );
 
@@ -49,6 +63,28 @@ export async function updateUserAction(
   revalidatePath("/users");
 
   return updated;
+}
+
+// ── Create user ───────────────────────────────────────────────────────────────
+
+export async function createUserAction(payload: {
+  name: string;
+  first_name?: string;
+  email: string;
+  is_agent?: boolean;
+  is_active?: boolean;
+  password?: string;
+}) {
+  const { accessToken } = await requireAccessLevel(5);
+
+  const user = await apiFetch(
+    `/api/admin/all-users/`,
+    { method: "POST", body: JSON.stringify(payload) },
+    accessToken,
+  );
+
+  revalidatePath("/users");
+  return user;
 }
 
 // ── Delete user ───────────────────────────────────────────────────────────────

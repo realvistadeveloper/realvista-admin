@@ -7,7 +7,7 @@ import UsersTable from "./users-table";
 
 export interface PlatformUser {
   id: number;
-  last_name: string;
+  name: string;
   first_name: string | null;
   email: string;
   is_active: boolean;

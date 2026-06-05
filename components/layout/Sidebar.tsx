@@ -1,6 +1,6 @@
-// components/layout/Sidebar.tsx
 "use client";
 
+// components/layout/Sidebar.tsx
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAction } from "@/lib/auth";
@@ -10,6 +10,8 @@ import {
   Users,
   UserCheck,
   Building2,
+  TrendingUp,
+  GraduationCap,
   LogOut,
   ShieldCheck,
   ChevronRight,
@@ -20,7 +22,7 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ElementType;
-  minLevel?: number; // minimum staff_level to show this item
+  minLevel?: number;
 }
 
 const NAV: NavItem[] = [
@@ -28,14 +30,25 @@ const NAV: NavItem[] = [
   { label: "Users", href: "/users", icon: Users },
   { label: "Agents", href: "/agents", icon: UserCheck },
   { label: "Properties", href: "/properties", icon: Building2 },
+  { label: "Trends", href: "/trends", icon: TrendingUp },
+  { label: "Learn", href: "/learn", icon: GraduationCap },
 ];
 
 export default function Sidebar({ user }: { user: AdminUser }) {
   const pathname = usePathname();
 
   const visibleNav = NAV.filter(
-    (item) => !item.minLevel || (user.staff_level ?? 0) >= item.minLevel,
+    (item) => !item.minLevel || (user.access_level ?? 0) >= item.minLevel,
   );
+
+  // Best available display name
+  const displayName = user.name || user.first_name || user.email;
+  const avatarInitial = (
+    user.name?.[0] ||
+    user.first_name?.[0] ||
+    user.email?.[0] ||
+    "A"
+  ).toUpperCase();
 
   return (
     <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-zinc-100 shrink-0">
@@ -93,14 +106,16 @@ export default function Sidebar({ user }: { user: AdminUser }) {
         <div className="flex items-center gap-3 px-3 py-2 mb-1">
           <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
             <span className="text-xs font-semibold text-brand-700">
-              {user.name?.[0]?.toUpperCase() ?? "A"}
+              {avatarInitial}
             </span>
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-zinc-900 truncate">
-              {user.name}
+              {displayName}
             </p>
-            <p className="text-xs text-zinc-400 truncate">{user.email}</p>
+            <p className="text-xs text-zinc-400 truncate">
+              {user.role?.replace(/_/g, " ") ?? "Admin"}
+            </p>
           </div>
         </div>
 

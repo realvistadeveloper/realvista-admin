@@ -6,9 +6,11 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import type { PlatformUser, PaginatedUsers } from "./page";
+import CreateUserModal from "./create-user-modal";
 import {
   Search,
   SlidersHorizontal,
+  UserPlus,
   ChevronLeft,
   ChevronRight,
   UserCircle,
@@ -101,6 +103,7 @@ export default function UsersTable({
   const [type, setType] = useState(initialParams.user_type ?? "");
   const [active, setActive] = useState(initialParams.is_active ?? "");
   const [error, setError] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   // ── Fetch helper ────────────────────────────────────────────────────────────
@@ -165,6 +168,9 @@ export default function UsersTable({
 
   return (
     <div className="space-y-4">
+      {/* ── Create modal ── */}
+      {showCreate && <CreateUserModal onClose={() => setShowCreate(false)} />}
+
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
@@ -173,6 +179,13 @@ export default function UsersTable({
             {data ? `${data.count.toLocaleString()} total` : "—"}
           </p>
         </div>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-zinc-900 text-white rounded-xl hover:bg-zinc-700 transition-colors"
+        >
+          <UserPlus className="w-4 h-4" />
+          New user
+        </button>
       </div>
 
       {/* ── Filters ── */}
@@ -279,7 +292,7 @@ export default function UsersTable({
                       </div>
                       <div className="min-w-0">
                         <p className="font-medium text-zinc-900 truncate">
-                          {user.last_name || user.first_name || "—"}
+                          {user.name || user.first_name || "—"}
                         </p>
                         <p className="text-xs text-zinc-400 truncate">
                           {user.email}

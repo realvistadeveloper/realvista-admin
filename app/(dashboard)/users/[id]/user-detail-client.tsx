@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { UserDetail } from "./page";
 import {
   toggleUserActiveAction,
+  toggleUserAgentAction,
   updateUserAction,
   deleteUserAction,
 } from "../actions";
@@ -26,6 +27,7 @@ import {
   Check,
   X,
   TriangleAlert,
+  BriefcaseBusiness,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -57,22 +59,60 @@ function UserTypeBadge({ type }: { type: UserDetail["user_type"] }) {
   );
 }
 
+// ── VerificationRow ───────────────────────────────────────────────────────────
+
 function VerificationRow({
   icon: Icon,
   label,
   verified,
+  editable,
+  onToggle,
 }: {
   icon: React.ElementType;
   label: string;
   verified: boolean;
+  editable?: boolean;
+  onToggle?: (value: boolean) => void;
 }) {
+  const [localVerified, setLocalVerified] = useState(verified);
+  const [saving, startSave] = useTransition();
+
+  const handleToggle = () => {
+    if (!onToggle) return;
+    const next = !localVerified;
+    setLocalVerified(next);
+    startSave(async () => {
+      try {
+        await onToggle(next);
+      } catch {
+        setLocalVerified(localVerified); // revert on error
+      }
+    });
+  };
+
   return (
     <div className="flex items-center justify-between py-2.5 border-b border-zinc-50 last:border-0">
       <div className="flex items-center gap-2.5 text-sm text-zinc-600">
         <Icon className="w-4 h-4 text-zinc-400" />
         {label}
       </div>
-      {verified ? (
+      {editable ? (
+        <button
+          onClick={handleToggle}
+          disabled={saving}
+          className={clsx(
+            "relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50",
+            localVerified ? "bg-green-500" : "bg-zinc-200",
+          )}
+        >
+          <span
+            className={clsx(
+              "inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform",
+              localVerified ? "translate-x-4" : "translate-x-1",
+            )}
+          />
+        </button>
+      ) : localVerified ? (
         <span className="flex items-center gap-1 text-xs font-medium text-green-700">
           <Check className="w-3.5 h-3.5" /> Verified
         </span>
@@ -85,20 +125,100 @@ function VerificationRow({
   );
 }
 
+// ── EditField ─────────────────────────────────────────────────────────────────
+
+function EditField({
+  icon: Icon,
+  label,
+  value,
+  onChange,
+  inputType = "text",
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  inputType?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-2 text-sm text-zinc-500 shrink-0">
+        <Icon className="w-3.5 h-3.5 text-zinc-300" />
+        {label}
+      </div>
+      <input
+        type={inputType}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="flex-1 text-sm text-right bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-zinc-300 min-w-0"
+      />
+    </div>
+  );
+}
+
+// ── InfoRow ───────────────────────────────────────────────────────────────────
+
+function InfoRow({
+  icon: Icon,
+  label,
+  value,
+  capitalize,
+  mono,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  capitalize?: boolean;
+  mono?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center gap-2 text-sm text-zinc-500 shrink-0">
+        <Icon className="w-3.5 h-3.5 text-zinc-300" />
+        {label}
+      </div>
+      <span
+        className={clsx(
+          "text-sm text-zinc-800 truncate text-right",
+          capitalize && "capitalize",
+          mono && "font-mono text-xs",
+        )}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function UserDetailClient({ user }: { user: UserDetail }) {
   const [isPending, startTransition] = useTransition();
   const [isEditing, setIsEditing] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [showAgentConfirm, setShowAgentConfirm] = useState(false);
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
     msg: string;
   } | null>(null);
 
-  // Edit form state
+  // Optimistic local state
+  const [isAgent, setIsAgent] = useState(user.is_agent);
+  const [isActive, setIsActive] = useState(user.is_active);
+
+  // Edit form state — all editable fields
   const [lastName, setLastName] = useState(user.last_name ?? "");
   const [firstName, setFirstName] = useState(user.first_name ?? "");
+  const [emailVal, setEmailVal] = useState(user.email ?? "");
+  const [phoneVal, setPhoneVal] = useState(user.profile?.phone_number ?? "");
+
+  // ── Derived ──────────────────────────────────────────────────────────────
+
+  const userType: UserDetail["user_type"] = user.is_staff
+    ? "admin"
+    : isAgent
+      ? "agent"
+      : "user";
 
   // ── Actions ──────────────────────────────────────────────────────────────
 
@@ -106,9 +226,10 @@ export default function UserDetailClient({ user }: { user: UserDetail }) {
     startTransition(async () => {
       try {
         await toggleUserActiveAction(user.id);
+        setIsActive((prev) => !prev);
         setFeedback({
           type: "success",
-          msg: `User ${user.is_active ? "deactivated" : "activated"}.`,
+          msg: `User ${isActive ? "deactivated" : "activated"}.`,
         });
       } catch {
         setFeedback({ type: "error", msg: "Failed to update status." });
@@ -116,13 +237,31 @@ export default function UserDetailClient({ user }: { user: UserDetail }) {
     });
   };
 
+  const handleToggleAgent = () => {
+    startTransition(async () => {
+      try {
+        const result = await toggleUserAgentAction(user.id);
+        setIsAgent(result.is_agent);
+        setShowAgentConfirm(false);
+        setFeedback({ type: "success", msg: result.detail });
+      } catch {
+        setFeedback({ type: "error", msg: "Failed to update agent status." });
+        setShowAgentConfirm(false);
+      }
+    });
+  };
+
   const handleSave = () => {
     startTransition(async () => {
       try {
-        await updateUserAction(user.id, {
+        const payload = {
           last_name: lastName,
           first_name: firstName,
-        });
+          email: emailVal,
+          phone_number: phoneVal || null,
+        } as unknown as Parameters<typeof updateUserAction>[1];
+
+        await updateUserAction(user.id, payload);
         setIsEditing(false);
         setFeedback({ type: "success", msg: "User updated successfully." });
       } catch {
@@ -135,7 +274,6 @@ export default function UserDetailClient({ user }: { user: UserDetail }) {
     startTransition(async () => {
       try {
         await deleteUserAction(user.id);
-        // redirect happens inside the action
       } catch {
         setFeedback({ type: "error", msg: "Failed to delete user." });
         setShowDelete(false);
@@ -147,7 +285,7 @@ export default function UserDetailClient({ user }: { user: UserDetail }) {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      {/* ── Back ── */}
+      {/* Back */}
       <Link
         href="/users"
         className="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-700 transition-colors"
@@ -155,7 +293,7 @@ export default function UserDetailClient({ user }: { user: UserDetail }) {
         <ArrowLeft className="w-4 h-4" /> Back to users
       </Link>
 
-      {/* ── Feedback banner ── */}
+      {/* Feedback */}
       {feedback && (
         <div
           className={clsx(
@@ -206,11 +344,11 @@ export default function UserDetailClient({ user }: { user: UserDetail }) {
                 </>
               )}
               <div className="flex items-center gap-2 mt-2">
-                <UserTypeBadge type={user.user_type} />
+                <UserTypeBadge type={userType} />
                 <span
                   className={clsx(
                     "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium",
-                    user.is_active
+                    isActive
                       ? "bg-green-50 text-green-700"
                       : "bg-red-50 text-red-600",
                   )}
@@ -218,10 +356,10 @@ export default function UserDetailClient({ user }: { user: UserDetail }) {
                   <span
                     className={clsx(
                       "w-1.5 h-1.5 rounded-full",
-                      user.is_active ? "bg-green-500" : "bg-red-400",
+                      isActive ? "bg-green-500" : "bg-red-400",
                     )}
                   />
-                  {user.is_active ? "Active" : "Inactive"}
+                  {isActive ? "Active" : "Inactive"}
                 </span>
               </div>
             </div>
@@ -260,20 +398,39 @@ export default function UserDetailClient({ user }: { user: UserDetail }) {
                 >
                   <Pencil className="w-4 h-4" />
                 </button>
+
+                {/* Toggle agent */}
+                {!user.is_staff && (
+                  <button
+                    onClick={() => setShowAgentConfirm(true)}
+                    disabled={isPending}
+                    className={clsx(
+                      "p-2 rounded-xl transition-colors disabled:opacity-50",
+                      isAgent
+                        ? "text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                        : "text-zinc-400 hover:text-blue-500 hover:bg-blue-50",
+                    )}
+                    title={isAgent ? "Remove agent status" : "Make agent"}
+                  >
+                    <BriefcaseBusiness className="w-4 h-4" />
+                  </button>
+                )}
+
                 <button
                   onClick={handleToggleActive}
                   disabled={isPending}
                   className="p-2 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-50 rounded-xl transition-colors disabled:opacity-50"
-                  title={user.is_active ? "Deactivate user" : "Activate user"}
+                  title={isActive ? "Deactivate" : "Activate"}
                 >
                   {isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : user.is_active ? (
+                  ) : isActive ? (
                     <PowerOff className="w-4 h-4" />
                   ) : (
                     <Power className="w-4 h-4 text-green-500" />
                   )}
                 </button>
+
                 {!user.is_staff && (
                   <button
                     onClick={() => setShowDelete(true)}
@@ -291,12 +448,22 @@ export default function UserDetailClient({ user }: { user: UserDetail }) {
 
       {/* ── Details grid ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Account info */}
+        {/* Account */}
         <div className="bg-white rounded-2xl border border-zinc-100 p-5 space-y-3">
           <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
             Account
           </p>
-          <InfoRow icon={Mail} label="Email" value={user.email} />
+          {isEditing ? (
+            <EditField
+              icon={Mail}
+              label="Email"
+              value={emailVal}
+              onChange={setEmailVal}
+              inputType="email"
+            />
+          ) : (
+            <InfoRow icon={Mail} label="Email" value={user.email} />
+          )}
           <InfoRow
             icon={Calendar}
             label="Joined"
@@ -334,16 +501,28 @@ export default function UserDetailClient({ user }: { user: UserDetail }) {
             icon={Mail}
             label="Email"
             verified={user.is_email_verified}
+            editable={isEditing}
+            onToggle={(v) =>
+              updateUserAction(user.id, { is_email_verified: v })
+            }
           />
           <VerificationRow
             icon={Phone}
             label="Phone"
             verified={user.is_phone_verified}
+            editable={isEditing}
+            onToggle={(v) =>
+              updateUserAction(user.id, { is_phone_verified: v })
+            }
           />
           <VerificationRow
             icon={ShieldCheck}
             label="Identity"
             verified={user.is_identity_verified}
+            editable={isEditing}
+            onToggle={(v) =>
+              updateUserAction(user.id, { is_identity_verified: v })
+            }
           />
         </div>
 
@@ -353,12 +532,22 @@ export default function UserDetailClient({ user }: { user: UserDetail }) {
             <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
               Profile
             </p>
-            {user.profile.phone_number && (
-              <InfoRow
+            {isEditing ? (
+              <EditField
                 icon={Phone}
                 label="Phone"
-                value={user.profile.phone_number}
+                value={phoneVal}
+                onChange={setPhoneVal}
+                inputType="tel"
               />
+            ) : (
+              user.profile.phone_number && (
+                <InfoRow
+                  icon={Phone}
+                  label="Phone"
+                  value={user.profile.phone_number}
+                />
+              )
             )}
             {user.profile.country_of_residence && (
               <InfoRow
@@ -405,7 +594,51 @@ export default function UserDetailClient({ user }: { user: UserDetail }) {
         )}
       </div>
 
-      {/* ── Delete confirmation modal ── */}
+      {/* ── Agent confirm modal ── */}
+      {showAgentConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl border border-zinc-100 p-6 max-w-sm w-full shadow-xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                <BriefcaseBusiness className="w-5 h-5 text-blue-500" />
+              </div>
+              <div>
+                <p className="font-semibold text-zinc-900">
+                  {isAgent
+                    ? "Remove agent status?"
+                    : "Make this user an agent?"}
+                </p>
+                <p className="text-sm text-zinc-400">
+                  {isAgent
+                    ? "The agent profile will be preserved but deactivated."
+                    : "An agent profile will be created automatically."}
+                </p>
+              </div>
+            </div>
+            <p className="text-sm text-zinc-600 bg-zinc-50 rounded-xl px-4 py-3 font-medium">
+              {user.email}
+            </p>
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={() => setShowAgentConfirm(false)}
+                className="flex-1 px-4 py-2 text-sm border border-zinc-200 rounded-xl text-zinc-600 hover:bg-zinc-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleToggleAgent}
+                disabled={isPending}
+                className="flex-1 px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isAgent ? "Remove" : "Make agent"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete confirm modal ── */}
       {showDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl border border-zinc-100 p-6 max-w-sm w-full shadow-xl space-y-4">
@@ -420,9 +653,8 @@ export default function UserDetailClient({ user }: { user: UserDetail }) {
                 </p>
               </div>
             </div>
-            <p className="text-sm text-zinc-600 bg-zinc-50 rounded-xl px-4 py-3">
-              <span className="font-medium">{user.email}</span> will be
-              soft-deleted and can be restored later if needed.
+            <p className="text-sm text-zinc-600 bg-zinc-50 rounded-xl px-4 py-3 font-medium">
+              {user.email}
             </p>
             <div className="flex gap-3 pt-1">
               <button
@@ -443,40 +675,6 @@ export default function UserDetailClient({ user }: { user: UserDetail }) {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-// ── InfoRow ───────────────────────────────────────────────────────────────────
-
-function InfoRow({
-  icon: Icon,
-  label,
-  value,
-  capitalize,
-  mono,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: string;
-  capitalize?: boolean;
-  mono?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <div className="flex items-center gap-2 text-sm text-zinc-500 shrink-0">
-        <Icon className="w-3.5 h-3.5 text-zinc-300" />
-        {label}
-      </div>
-      <span
-        className={clsx(
-          "text-sm text-zinc-800 truncate text-right",
-          capitalize && "capitalize",
-          mono && "font-mono text-xs",
-        )}
-      >
-        {value}
-      </span>
     </div>
   );
 }

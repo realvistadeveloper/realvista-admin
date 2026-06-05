@@ -11,10 +11,13 @@ export interface AdminProfile {
 export interface AdminUser {
   id: number;
   name: string;
+  first_name: string | null;
   email: string;
   is_staff: boolean;
   is_superuser: boolean;
-  staff_level: number; // mirrors AdminProfile.access_level (0 if no profile)
+  staff_level: number;
+  access_level: number;
+  role: "super_admin" | "moderator" | "content_manager";
   admin_profile: AdminProfile | null;
 }
 
