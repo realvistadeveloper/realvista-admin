@@ -207,7 +207,7 @@ export default function UserDetailClient({ user }: { user: UserDetail }) {
   const [isActive, setIsActive] = useState(user.is_active);
 
   // Edit form state — all editable fields
-  const [lastName, setLastName] = useState(user.last_name ?? "");
+  const [lastName, setLastName] = useState(user.name ?? "");
   const [firstName, setFirstName] = useState(user.first_name ?? "");
   const [emailVal, setEmailVal] = useState(user.email ?? "");
   const [phoneVal, setPhoneVal] = useState(user.profile?.phone_number ?? "");
@@ -255,7 +255,7 @@ export default function UserDetailClient({ user }: { user: UserDetail }) {
     startTransition(async () => {
       try {
         const payload = {
-          last_name: lastName,
+          name: lastName,
           first_name: firstName,
           email: emailVal,
           phone_number: phoneVal || null,
@@ -336,7 +336,7 @@ export default function UserDetailClient({ user }: { user: UserDetail }) {
               ) : (
                 <>
                   <h1 className="text-lg font-semibold text-zinc-900">
-                    {user.last_name || "—"}
+                    {user.name || "—"}
                   </h1>
                   {user.first_name && (
                     <p className="text-sm text-zinc-400">{user.first_name}</p>

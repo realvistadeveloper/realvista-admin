@@ -8,7 +8,7 @@ import UserDetailClient from "./user-detail-client";
 
 export interface UserDetail {
   id: number;
-  last_name: string;
+  name: string;
   first_name: string | null;
   email: string;
   auth_provider: string;
