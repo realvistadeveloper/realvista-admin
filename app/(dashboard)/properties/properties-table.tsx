@@ -24,7 +24,6 @@ import {
   Eye,
   MessageSquare,
   Bookmark,
-  Plus,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -204,12 +203,6 @@ export default function PropertiesTable({
             {data ? `${data.count.toLocaleString()} total` : "—"}
           </p>
         </div>
-        <Link
-          href="/properties/new"
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-zinc-900 text-white rounded-xl hover:bg-zinc-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" /> New property
-        </Link>
       </div>
 
       {/* ── Stats ── */}

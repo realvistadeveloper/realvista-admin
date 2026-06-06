@@ -6,7 +6,7 @@ export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    return NextResponse.redirect(new URL("/overview", req.url));
   }
 
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
@@ -14,7 +14,7 @@ export function proxy(req: NextRequest) {
   const refresh = req.cookies.get("rv_admin_refresh")?.value;
 
   if (isPublic && token) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    return NextResponse.redirect(new URL("/overview", req.url));
   }
 
   if (!isPublic && !token && !refresh) {

@@ -8,6 +8,8 @@ export interface AdminProfile {
   permissions: Record<string, unknown>;
 }
 
+export type AdminRole = "super_admin" | "moderator" | "content_manager";
+
 export interface AdminUser {
   id: number;
   name: string;
@@ -15,9 +17,11 @@ export interface AdminUser {
   email: string;
   is_staff: boolean;
   is_superuser: boolean;
+  is_active: boolean;
   staff_level: number;
   access_level: number;
-  role: "super_admin" | "moderator" | "content_manager";
+  role: AdminRole | null;
+  permissions: Record<string, unknown>;
   admin_profile: AdminProfile | null;
 }
 

@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { apiFetch } from "./api";
-import type { AdminUser, AuthTokens } from "@/types/authTypes";
+import type { AdminUser, AuthTokens } from "@/lib/types";
 
 // ── Cookie keys ───────────────────────────────────────────────────────────────
 

@@ -1,13 +1,11 @@
 // app/(dashboard)/properties/page.tsx
 import { requireAccessLevel } from "@/lib/auth";
 import { apiFetch } from "@/lib/api";
-import PropertiesTable from "./properties-table";
+import PropertiesWrapper from "./properties-wrapper";
 import type { PaginatedProperties, PropertyStats } from "./types";
+import type { PaginatedPortfolio, PortfolioStats } from "./portfolio-types";
 
-async function fetchProperties(
-  token: string,
-  params: Record<string, string>,
-): Promise<PaginatedProperties | null> {
+async function fetchMarket(token: string, params: Record<string, string>) {
   try {
     const qs = new URLSearchParams({ page_size: "20", ...params }).toString();
     return await apiFetch<PaginatedProperties>(
@@ -20,10 +18,35 @@ async function fetchProperties(
   }
 }
 
-async function fetchStats(token: string): Promise<PropertyStats | null> {
+async function fetchMarketStats(token: string) {
   try {
     return await apiFetch<PropertyStats>(
       "/api/admin/properties/stats/",
+      {},
+      token,
+    );
+  } catch {
+    return null;
+  }
+}
+
+async function fetchPortfolio(token: string, params: Record<string, string>) {
+  try {
+    const qs = new URLSearchParams({ page_size: "20", ...params }).toString();
+    return await apiFetch<PaginatedPortfolio>(
+      `/api/admin/portfolio/?${qs}`,
+      {},
+      token,
+    );
+  } catch {
+    return null;
+  }
+}
+
+async function fetchPortfolioStats(token: string) {
+  try {
+    return await apiFetch<PortfolioStats>(
+      "/api/admin/portfolio/stats/",
       {},
       token,
     );
@@ -37,28 +60,43 @@ interface PageProps {
 }
 
 export default async function PropertiesPage({ searchParams }: PageProps) {
-  const { accessToken } = await requireAccessLevel(3);
+  const session = await requireAccessLevel(3);
   const params = await searchParams;
 
-  const queryParams: Record<string, string> = {};
-  if (params.search) queryParams.search = params.search;
-  if (params.status) queryParams.status = params.status;
-  if (params.property_type) queryParams.property_type = params.property_type;
-  if (params.listing_purpose)
-    queryParams.listing_purpose = params.listing_purpose;
-  if (params.page) queryParams.page = params.page;
+  const activeTab = params.tab === "portfolio" ? "portfolio" : "market";
 
-  const [data, stats] = await Promise.all([
-    fetchProperties(accessToken, queryParams),
-    fetchStats(accessToken),
-  ]);
+  const marketParams: Record<string, string> = {};
+  if (params.search) marketParams.search = params.search;
+  if (params.status) marketParams.status = params.status;
+  if (params.property_type) marketParams.property_type = params.property_type;
+  if (params.listing_purpose)
+    marketParams.listing_purpose = params.listing_purpose;
+  if (params.page && activeTab === "market") marketParams.page = params.page;
+
+  const portfolioParams: Record<string, string> = {};
+  if (params.psearch) portfolioParams.search = params.psearch;
+  if (params.pstatus) portfolioParams.status = params.pstatus;
+  if (params.ptype) portfolioParams.property_type = params.ptype;
+  if (params.page && activeTab === "portfolio")
+    portfolioParams.page = params.page;
+
+  const [marketData, marketStats, portfolioData, portfolioStats] =
+    await Promise.all([
+      fetchMarket(session.accessToken, marketParams),
+      fetchMarketStats(session.accessToken),
+      fetchPortfolio(session.accessToken, portfolioParams),
+      fetchPortfolioStats(session.accessToken),
+    ]);
 
   return (
-    <PropertiesTable
-      initialData={data}
-      initialStats={stats}
+    <PropertiesWrapper
+      initialData={marketData}
+      initialStats={marketStats}
       initialParams={params}
-      accessToken={accessToken}
+      accessToken={session.accessToken}
+      initialTab={activeTab}
+      portfolioData={portfolioData}
+      portfolioStats={portfolioStats}
     />
   );
 }
