@@ -7,7 +7,7 @@ import { Eye, EyeOff, ShieldCheck, Loader2 } from "lucide-react";
 
 export default function LoginForm() {
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("next") ?? "/dashboard";
+  const redirectTo = searchParams.get("next") ?? "/overview";
   const expired = searchParams.get("reason") === "session_expired";
 
   const [email, setEmail] = useState("");
