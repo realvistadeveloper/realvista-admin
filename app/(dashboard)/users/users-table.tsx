@@ -279,10 +279,13 @@ export default function UsersTable({
                   </td>
                 </tr>
               )}
-              {users.map((user) => (
+              {users.map((user, index) => (
                 <tr
                   key={user.id}
-                  className="hover:bg-zinc-50/60 transition-colors group"
+                  className={clsx(
+                    "transition-colors group hover:bg-blue-50/40",
+                    index % 2 === 0 ? "bg-white" : "bg-zinc-100",
+                  )}
                 >
                   {/* User info */}
                   <td className="px-5 py-3.5">

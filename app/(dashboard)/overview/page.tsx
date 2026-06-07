@@ -365,7 +365,7 @@ async function fetchAll(token: string) {
     safe(apiFetch<ApiSubStats>("/api/admin/subscriptions/stats/", {}, token)),
     safe(apiFetch<ApiPaymentStats>("/api/admin/payments/stats/", {}, token)),
     safe(apiFetch<ApiReferralStats>("/api/admin/referrals/stats/", {}, token)),
-    safe(apiFetch<ApiInboxStats>("/api/admin/inbox/stats/", {}, token)),
+    safe(apiFetch<ApiInboxStats>("/api/admin/contacts/stats/", {}, token)),
     safe(apiFetch<ApiMarketingStats>("/api/admin/marketing/stats/", {}, token)),
   ]);
   return {
