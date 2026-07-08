@@ -29,7 +29,6 @@ export interface AdminUser {
 export interface AuthTokens {
   access: string; // short-lived JWT (30 min)
   refresh: string; // rotating JWT   (7 days)
-  staff_level: number;
   user: AdminUser;
 }
 

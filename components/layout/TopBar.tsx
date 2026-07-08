@@ -82,7 +82,12 @@ function roleLabel(user: AdminUser): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function TopBar({ user }: { user: AdminUser }) {
+interface TopBarProps {
+  user: AdminUser;
+  agentId: number | null;
+}
+
+export default function TopBar({ user, agentId }: TopBarProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -115,6 +120,15 @@ export default function TopBar({ user }: { user: AdminUser }) {
 
         {/* Right: user badge */}
         <div className="flex items-center gap-3">
+          {agentId !== null && (
+            <Link
+              href={`/agents/${agentId}`}
+              className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
+            >
+              <UserCheck className="w-4 h-4" />
+              My Page
+            </Link>
+          )}
           <div className="hidden sm:block text-right">
             <p className="text-sm font-medium text-zinc-800 leading-none">
               {user.name || user.first_name || user.email}

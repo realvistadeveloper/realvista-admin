@@ -7,11 +7,11 @@ export async function uploadTrendImage(
   imageType: "cover" | "inline",
   accessToken: string,
 ): Promise<{ url?: string; cover_url?: string }> {
-  const base = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "");
+  const base = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
   if (!base) {
     throw new Error(
-      "NEXT_PUBLIC_API_BASE is not set. Add it to your .env.local file.\n" +
-        "Example: NEXT_PUBLIC_API_BASE=http://127.0.0.1:8001",
+      "NEXT_PUBLIC_API_URL is not set. Add it to your .env.local file.\n" +
+        "Example: NEXT_PUBLIC_API_URL=http://127.0.0.1:8001",
     );
   }
 

@@ -98,7 +98,7 @@ function OwnerSearch({
     }
     setSearching(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") ?? "";
+      const base = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
       const res = await fetch(
         `${base}/api/admin/all-users/?search=${encodeURIComponent(q)}&page_size=8`,
         { headers: { Authorization: `Bearer ${accessToken}` } },

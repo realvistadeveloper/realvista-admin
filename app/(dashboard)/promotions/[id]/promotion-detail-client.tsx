@@ -882,7 +882,7 @@ function EarningsTab({
     setLoading(true);
     setError(false);
     try {
-      const base = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") ?? "";
+      const base = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
       const qs = reversed
         ? `?is_reversed=${reversed}&page_size=50`
         : "?page_size=50";

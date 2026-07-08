@@ -132,8 +132,8 @@ export async function uploadPropertyMediaAction(
   accessToken: string,
   name?: string,
 ) {
-  const base = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "");
-  if (!base) throw new Error("NEXT_PUBLIC_API_BASE is not set.");
+  const base = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+  if (!base) throw new Error("NEXT_PUBLIC_API_URL is not set.");
 
   const formData = new FormData();
   formData.append("file", file);

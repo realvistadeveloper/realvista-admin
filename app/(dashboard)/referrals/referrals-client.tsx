@@ -295,7 +295,7 @@ function ReferralRow({
     }
     setLoading(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") ?? "";
+      const base = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
       const res = await fetch(`${base}/api/admin/referrals/${referral.id}/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
@@ -410,7 +410,7 @@ function UserReferralPanel({
   useState(() => {
     const load = async () => {
       try {
-        const base = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") ?? "";
+        const base = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
         const res = await fetch(
           `${base}/api/admin/referrals/users/${userId}/`,
           { headers: { Authorization: `Bearer ${accessToken}` } },

@@ -576,7 +576,7 @@ function PropertiesTab({
     setLoading(true);
     setError(false);
     try {
-      const base = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") ?? "";
+      const base = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
       const res = await fetch(
         `${base}/api/admin/properties/?owner_id=${agentUserId}&page_size=50`,
         { headers: { Authorization: `Bearer ${accessToken}` } },
@@ -1056,7 +1056,7 @@ function AssignAdminCard({
     }
     setSearching(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") ?? "";
+      const base = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
       const res = await fetch(
         `${base}/api/admin/users/?search=${encodeURIComponent(q)}&page_size=8`,
         { headers: { Authorization: `Bearer ${accessToken}` } },
