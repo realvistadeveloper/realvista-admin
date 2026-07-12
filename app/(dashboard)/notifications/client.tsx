@@ -1,6 +1,7 @@
 "use client";
 // app/(dashboard)/notifications/page.tsx — client component (simple enough)
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { sendPushNotificationAction, toggleEmailOptAction } from "./actions";
 import type {
   NotificationStats,
@@ -21,6 +22,7 @@ import {
   EyeOff,
   ChevronDown,
   ChevronUp,
+  ArrowRight,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -354,11 +356,20 @@ export default function NotificationsPage({
 
   return (
     <div className="space-y-5 max-w-4xl mx-auto">
-      <div>
-        <h1 className="text-lg font-semibold text-zinc-900">Notifications</h1>
-        <p className="text-sm text-zinc-400 mt-0.5">
-          Push notifications and email preferences
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold text-zinc-900">Notifications</h1>
+          <p className="text-sm text-zinc-400 mt-0.5">
+            Push notifications and email preferences
+          </p>
+        </div>
+        <Link
+          href="/notifications/log"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
+        >
+          In-app notifications
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
       </div>
       <StatsStrip stats={stats} />
       <PushComposer onSent={(n) => setHistory((p) => [n, ...p])} />
