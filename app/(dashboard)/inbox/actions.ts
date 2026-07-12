@@ -17,7 +17,7 @@ export async function updateContactAction(
 ) {
   const { accessToken } = await requireSession();
   const result = await apiFetch<ContactMessage>(
-    `/api/admin/contact/contacts/${id}/`,
+    `/api/admin/contacts/${id}/`,
     { method: "PATCH", body: JSON.stringify(payload) },
     accessToken,
   );
@@ -32,7 +32,7 @@ export async function updateContactStatusAction(
 ) {
   const { accessToken } = await requireSession();
   const result = await apiFetch<ContactMessage>(
-    `/api/admin/contact/contacts/${id}/status/`,
+    `/api/admin/contacts/${id}/status/`,
     { method: "PATCH", body: JSON.stringify({ status, notes: notes ?? "" }) },
     accessToken,
   );
@@ -43,7 +43,7 @@ export async function updateContactStatusAction(
 export async function deleteContactAction(id: number) {
   const { accessToken } = await requireSession();
   await apiFetch(
-    `/api/admin/contact/contacts/${id}/`,
+    `/api/admin/contacts/${id}/`,
     { method: "DELETE" },
     accessToken,
   );
@@ -61,7 +61,7 @@ export async function updateFeedbackAction(
 ) {
   const { accessToken } = await requireSession();
   const result = await apiFetch<Feedback>(
-    `/api/admin/contact/feedback/${id}/`,
+    `/api/admin/feedback/${id}/`,
     { method: "PATCH", body: JSON.stringify(payload) },
     accessToken,
   );
@@ -72,7 +72,7 @@ export async function updateFeedbackAction(
 export async function deleteFeedbackAction(id: number) {
   const { accessToken } = await requireSession();
   await apiFetch(
-    `/api/admin/contact/feedback/${id}/`,
+    `/api/admin/feedback/${id}/`,
     { method: "DELETE" },
     accessToken,
   );

@@ -637,6 +637,14 @@ export default function InboxClient({
   const [feedbackFilter, setFeedbackFilter] = useState("");
 
   const [isPending, startTransition] = useTransition();
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(
+    null,
+  );
+
+  const notify = (msg: string, ok = true) => {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const fetchContacts = (
     page = 1,
@@ -653,16 +661,18 @@ export default function InboxClient({
       if (status) params.status = status;
       if (category) params.category = category;
       const qs = new URLSearchParams(params).toString();
-      const result = await apiFetch<PaginatedContacts>(
-        `/api/admin/inbox/contacts/?${qs}`,
-        {},
-        accessToken,
-      ).catch(() => null);
-      if (result) {
+      try {
+        const result = await apiFetch<PaginatedContacts>(
+          `/api/admin/contacts/?${qs}`,
+          {},
+          accessToken,
+        );
         setContacts(result.results);
         setContactsTotal(result.count);
         setContactsPage(result.page);
         setContactsTotalPages(result.total_pages);
+      } catch (e: any) {
+        notify(e?.message ?? "Failed to load messages.", false);
       }
     });
   };
@@ -677,16 +687,18 @@ export default function InboxClient({
       if (filter === "pending") params.is_approved = "false";
       if (filter === "featured") params.is_featured = "true";
       const qs = new URLSearchParams(params).toString();
-      const result = await apiFetch<PaginatedFeedback>(
-        `/api/admin/inbox/feedback/?${qs}`,
-        {},
-        accessToken,
-      ).catch(() => null);
-      if (result) {
+      try {
+        const result = await apiFetch<PaginatedFeedback>(
+          `/api/admin/feedback/?${qs}`,
+          {},
+          accessToken,
+        );
         setFeedback(result.results);
         setFeedbackTotal(result.count);
         setFeedbackPage(result.page);
         setFeedbackTotalPages(result.total_pages);
+      } catch (e: any) {
+        notify(e?.message ?? "Failed to load feedback.", false);
       }
     });
   };
@@ -717,6 +729,19 @@ export default function InboxClient({
 
   return (
     <div className="space-y-5">
+      {/* Toast */}
+      {toast && (
+        <div
+          className={clsx(
+            "fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg text-sm font-medium",
+            toast.ok ? "bg-green-600 text-white" : "bg-red-600 text-white",
+          )}
+        >
+          {toast.ok ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+          {toast.msg}
+        </div>
+      )}
+
       {/* Header */}
       <div>
         <h1 className="text-lg font-semibold text-zinc-900">Inbox</h1>
