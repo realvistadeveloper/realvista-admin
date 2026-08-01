@@ -54,6 +54,30 @@ function Field({
 const inputClass =
   "w-full text-sm border border-zinc-200 rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-zinc-300";
 
+/**
+ * Pull the most specific message out of an error. apiFetch throws a plain
+ * Error whose `message` already holds the parsed backend detail / field
+ * errors; the `response.data` fallbacks cover any axios-shaped rejections.
+ */
+function extractErrorMessage(err: unknown, fallback: string): string {
+  const anyErr = err as {
+    message?: string;
+    response?: { data?: Record<string, unknown> & { detail?: string; error?: string } };
+  };
+  const data = anyErr?.response?.data;
+  return (
+    anyErr?.message ||
+    data?.detail ||
+    data?.error ||
+    (data
+      ? Object.entries(data)
+          .map(([k, v]) => `${k}: ${v}`)
+          .join(", ")
+      : "") ||
+    fallback
+  );
+}
+
 interface TrendEditorProps {
   mode: "create" | "edit";
   trend?: Trend;
@@ -191,8 +215,11 @@ export default function TrendEditor({
           await uploadCoverIfNeeded(trend!.id);
           showFeedback("success", "Saved.");
         }
-      } catch {
-        showFeedback("error", "Failed to save.");
+      } catch (err) {
+        showFeedback(
+          "error",
+          extractErrorMessage(err, "Failed to save. Please try again."),
+        );
       }
     });
   };
@@ -222,8 +249,11 @@ export default function TrendEditor({
         const r = await togglePublishAction(id, !isPublished);
         setIsPublished(r.publish);
         showFeedback("success", r.detail);
-      } catch {
-        showFeedback("error", "Failed to update publish status.");
+      } catch (err) {
+        showFeedback(
+          "error",
+          extractErrorMessage(err, "Failed to update publish status."),
+        );
       }
     });
   };
@@ -236,8 +266,8 @@ export default function TrendEditor({
     startTransition(async () => {
       try {
         await deleteTrendAction(id);
-      } catch {
-        showFeedback("error", "Failed to delete.");
+      } catch (err) {
+        showFeedback("error", extractErrorMessage(err, "Failed to delete."));
         setShowDelete(false);
       }
     });
