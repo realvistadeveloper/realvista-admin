@@ -1,6 +1,7 @@
 // app/(dashboard)/users/page.tsx
+import { redirect } from "next/navigation";
 import { requireAccessLevel } from "@/lib/auth";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, isAuthError } from "@/lib/api";
 import UsersTable from "./users-table";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -42,7 +43,8 @@ async function fetchUsers(
       {},
       token,
     );
-  } catch {
+  } catch (err) {
+    if (isAuthError(err)) redirect("/login?reason=session_expired");
     return null;
   }
 }

@@ -1,6 +1,7 @@
 // app/(dashboard)/properties/new/page.tsx
+import { redirect } from "next/navigation";
 import { requireAccessLevel } from "@/lib/auth";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, isAuthError } from "@/lib/api";
 import NewPropertyClient from "./new-property-client";
 
 interface PageProps {
@@ -16,7 +17,8 @@ async function fetchOwner(token: string, ownerId: string) {
       email: string;
       is_agent: boolean;
     }>(`/api/admin/all-users/${ownerId}/`, {}, token);
-  } catch {
+  } catch (err) {
+    if (isAuthError(err)) redirect("/login?reason=session_expired");
     return null;
   }
 }

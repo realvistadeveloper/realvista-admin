@@ -1,6 +1,7 @@
 // app/(dashboard)/promotions/page.tsx
+import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, isAuthError } from "@/lib/api";
 import PromotionsTable from "./promotions-table";
 import type { PaginatedPromotions, PromotionStats } from "./types";
 
@@ -12,7 +13,8 @@ async function fetchPromotions(token: string, params: Record<string, string>) {
       {},
       token,
     );
-  } catch {
+  } catch (err) {
+    if (isAuthError(err)) redirect("/login?reason=session_expired");
     return null;
   }
 }
@@ -24,7 +26,8 @@ async function fetchStats(token: string) {
       {},
       token,
     );
-  } catch {
+  } catch (err) {
+    if (isAuthError(err)) redirect("/login?reason=session_expired");
     return null;
   }
 }

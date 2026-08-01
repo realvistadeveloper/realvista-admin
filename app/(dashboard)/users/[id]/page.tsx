@@ -1,7 +1,7 @@
 // app/(dashboard)/users/[id]/page.tsx
 import { requireAccessLevel } from "@/lib/auth";
-import { apiFetch } from "@/lib/api";
-import { notFound } from "next/navigation";
+import { apiFetch, isAuthError } from "@/lib/api";
+import { notFound, redirect } from "next/navigation";
 import UserDetailClient from "./user-detail-client";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -47,7 +47,8 @@ async function fetchUser(
 ): Promise<UserDetail | null> {
   try {
     return await apiFetch<UserDetail>(`/api/admin/all-users/${id}/`, {}, token);
-  } catch {
+  } catch (err) {
+    if (isAuthError(err)) redirect("/login?reason=session_expired");
     return null;
   }
 }

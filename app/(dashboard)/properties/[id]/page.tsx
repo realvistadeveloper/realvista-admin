@@ -1,7 +1,7 @@
 // app/(dashboard)/properties/[id]/page.tsx
 import { requireAccessLevel } from "@/lib/auth";
-import { apiFetch } from "@/lib/api";
-import { notFound } from "next/navigation";
+import { apiFetch, isAuthError } from "@/lib/api";
+import { notFound, redirect } from "next/navigation";
 import PropertyDetailClient from "./property-detail-client";
 import type { MarketProperty } from "../types";
 
@@ -15,7 +15,8 @@ async function fetchProperty(
       {},
       token,
     );
-  } catch {
+  } catch (err) {
+    if (isAuthError(err)) redirect("/login?reason=session_expired");
     return null;
   }
 }

@@ -1,6 +1,7 @@
 // app/(dashboard)/properties/page.tsx
+import { redirect } from "next/navigation";
 import { requireAccessLevel } from "@/lib/auth";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, isAuthError } from "@/lib/api";
 import PropertiesWrapper from "./properties-wrapper";
 import type { PaginatedProperties, PropertyStats } from "./types";
 import type { PaginatedPortfolio, PortfolioStats } from "./portfolio-types";
@@ -13,7 +14,8 @@ async function fetchMarket(token: string, params: Record<string, string>) {
       {},
       token,
     );
-  } catch {
+  } catch (err) {
+    if (isAuthError(err)) redirect("/login?reason=session_expired");
     return null;
   }
 }
@@ -25,7 +27,8 @@ async function fetchMarketStats(token: string) {
       {},
       token,
     );
-  } catch {
+  } catch (err) {
+    if (isAuthError(err)) redirect("/login?reason=session_expired");
     return null;
   }
 }
@@ -38,7 +41,8 @@ async function fetchPortfolio(token: string, params: Record<string, string>) {
       {},
       token,
     );
-  } catch {
+  } catch (err) {
+    if (isAuthError(err)) redirect("/login?reason=session_expired");
     return null;
   }
 }
@@ -50,7 +54,8 @@ async function fetchPortfolioStats(token: string) {
       {},
       token,
     );
-  } catch {
+  } catch (err) {
+    if (isAuthError(err)) redirect("/login?reason=session_expired");
     return null;
   }
 }

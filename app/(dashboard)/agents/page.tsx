@@ -1,6 +1,7 @@
 // app/(dashboard)/agents/page.tsx
+import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, isAuthError } from "@/lib/api";
 import AgentsTable from "./agents-table";
 import type { PaginatedAgents, AgentStats } from "./types";
 
@@ -12,7 +13,8 @@ async function fetchAgents(token: string, params: Record<string, string>) {
       {},
       token,
     );
-  } catch {
+  } catch (err) {
+    if (isAuthError(err)) redirect("/login?reason=session_expired");
     return null;
   }
 }
@@ -20,7 +22,8 @@ async function fetchAgents(token: string, params: Record<string, string>) {
 async function fetchStats(token: string) {
   try {
     return await apiFetch<AgentStats>("/api/admin/agents/stats/", {}, token);
-  } catch {
+  } catch (err) {
+    if (isAuthError(err)) redirect("/login?reason=session_expired");
     return null;
   }
 }

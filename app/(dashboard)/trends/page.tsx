@@ -1,6 +1,7 @@
 // app/(dashboard)/trends/page.tsx
+import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, isAuthError } from "@/lib/api";
 import TrendsTable from "./trends-table";
 import type { PaginatedTrends, TrendStats, Category } from "./types";
 
@@ -12,7 +13,11 @@ async function fetchTrends(token: string, params: Record<string, string>) {
       {},
       token,
     );
-  } catch {
+  } catch (err) {
+    // Send the user to re-auth on a dead session instead of rendering an empty
+    // "No articles found." table; log other failures so they're diagnosable.
+    if (isAuthError(err)) redirect("/login?reason=session_expired");
+    console.error("[trends] list fetch failed:", err);
     return null;
   }
 }
@@ -20,7 +25,9 @@ async function fetchTrends(token: string, params: Record<string, string>) {
 async function fetchStats(token: string) {
   try {
     return await apiFetch<TrendStats>("/api/admin/trends/stats/", {}, token);
-  } catch {
+  } catch (err) {
+    if (isAuthError(err)) redirect("/login?reason=session_expired");
+    console.error("[trends] stats fetch failed:", err);
     return null;
   }
 }
@@ -32,7 +39,9 @@ async function fetchCategories(token: string) {
       {},
       token,
     );
-  } catch {
+  } catch (err) {
+    if (isAuthError(err)) redirect("/login?reason=session_expired");
+    console.error("[trends] categories fetch failed:", err);
     return [];
   }
 }

@@ -1,14 +1,15 @@
 // app/(dashboard)/agents/[id]/page.tsx
 import { requireSession } from "@/lib/auth";
-import { apiFetch } from "@/lib/api";
-import { notFound } from "next/navigation";
+import { apiFetch, isAuthError } from "@/lib/api";
+import { notFound, redirect } from "next/navigation";
 import AgentDetailClient from "./agent-detail-client";
 import type { Agent } from "../types";
 
 async function fetchAgent(token: string, id: string): Promise<Agent | null> {
   try {
     return await apiFetch<Agent>(`/api/admin/agents/${id}/`, {}, token);
-  } catch {
+  } catch (err) {
+    if (isAuthError(err)) redirect("/login?reason=session_expired");
     return null;
   }
 }

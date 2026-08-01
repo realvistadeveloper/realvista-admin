@@ -36,7 +36,8 @@ export async function loginAction(
 
   jar.set(COOKIE_ACCESS, data.access, {
     ...COOKIE_BASE,
-    maxAge: 60 * 30, // 30 min — matches ACCESS_TOKEN_LIFETIME
+    maxAge: 60 * 60 * 8, // 8 hours — cover a full work session; expired JWTs
+    // are refreshed on 401 by apiFetch, so the cookie can outlive the token.
   });
 
   jar.set(COOKIE_REFRESH, data.refresh, {
@@ -156,7 +157,7 @@ export async function refreshAccessToken(): Promise<string | null> {
 
     jar.set(COOKIE_ACCESS, data.access, {
       ...COOKIE_BASE,
-      maxAge: 60 * 30,
+      maxAge: 60 * 60 * 8, // 8 hours — keep the refreshed session alive
     });
 
     // If ROTATE_REFRESH_TOKENS=True the backend returns a new refresh token

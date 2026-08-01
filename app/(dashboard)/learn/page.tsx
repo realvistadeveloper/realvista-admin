@@ -1,6 +1,7 @@
 // app/(dashboard)/learn/page.tsx
+import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, isAuthError } from "@/lib/api";
 import LearnTable from "./learn-table";
 import type { PaginatedLearn, LearnStats } from "./types";
 
@@ -8,7 +9,8 @@ async function fetchLearn(token: string, params: Record<string, string>) {
   try {
     const qs = new URLSearchParams({ page_size: "20", ...params }).toString();
     return await apiFetch<PaginatedLearn>(`/api/admin/learn/?${qs}`, {}, token);
-  } catch {
+  } catch (err) {
+    if (isAuthError(err)) redirect("/login?reason=session_expired");
     return null;
   }
 }
@@ -16,7 +18,8 @@ async function fetchLearn(token: string, params: Record<string, string>) {
 async function fetchStats(token: string) {
   try {
     return await apiFetch<LearnStats>("/api/admin/learn/stats/", {}, token);
-  } catch {
+  } catch (err) {
+    if (isAuthError(err)) redirect("/login?reason=session_expired");
     return null;
   }
 }
