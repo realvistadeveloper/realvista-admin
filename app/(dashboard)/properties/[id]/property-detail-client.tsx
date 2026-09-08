@@ -119,7 +119,7 @@ function formatDate(iso: string) {
 
 function getYouTubeId(url: string): string | null {
   const match = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
   );
   return match?.[1] ?? null;
 }
@@ -1053,9 +1053,14 @@ function MediaTab({
 
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [isDraggingImg, setIsDraggingImg] = useState(false);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+  const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 
   const youtubeId = youtubeUrl ? getYouTubeId(youtubeUrl) : null;
 
@@ -1071,11 +1076,16 @@ function MediaTab({
   };
 
   // ── Image upload ──────────────────────────────────────────────────────────
+  // Reusable core, shared by the <input onChange> and the drag-drop zone —
+  // uploadPropertyMediaAction takes the raw File plus individual params
+  // (it builds its own FormData internally), so callers here pass a File,
+  // not a FormData.
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
+  const handleImageUpload = async (file: File) => {
+    if (file.size > MAX_IMAGE_SIZE) {
+      onFeedback("error", `${file.name} is too large. Max 10MB per image.`);
+      return;
+    }
     setUploadingImage(true);
     try {
       const record = await uploadPropertyMediaAction(
@@ -1096,6 +1106,28 @@ function MediaTab({
     }
   };
 
+  const handleImageInputChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const selected = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    for (const file of selected) {
+      await handleImageUpload(file);
+    }
+  };
+
+  const handleImageDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingImg(false);
+    const dropped = Array.from(e.dataTransfer.files).filter((f) =>
+      f.type.startsWith("image/"),
+    );
+    for (const file of dropped) {
+      await handleImageUpload(file);
+    }
+  };
+
   const handleImageDelete = async (imageId: number) => {
     try {
       await deletePropertyImageAction(property.id, imageId);
@@ -1107,11 +1139,15 @@ function MediaTab({
   };
 
   // ── File upload ───────────────────────────────────────────────────────────
+  // Same reusable-core pattern as images, kept single-file (no `multiple`
+  // on the input, drop handler only takes dataTransfer.files[0]) — matching
+  // the existing one-file-per-upload behavior for this section.
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
+  const handleFileUpload = async (file: File) => {
+    if (file.size > MAX_FILE_SIZE) {
+      onFeedback("error", `${file.name} is too large. Max 20MB.`);
+      return;
+    }
     setUploadingFile(true);
     try {
       const record = await uploadPropertyMediaAction(
@@ -1131,6 +1167,22 @@ function MediaTab({
     } finally {
       setUploadingFile(false);
     }
+  };
+
+  const handleFileInputChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) await handleFileUpload(file);
+  };
+
+  const handleFileDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingFile(false);
+    const file = e.dataTransfer.files[0];
+    if (file) await handleFileUpload(file);
   };
 
   const handleFileDelete = async (fileId: number) => {
@@ -1166,45 +1218,84 @@ function MediaTab({
           <input
             ref={imageInputRef}
             type="file"
+            multiple
             accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,.heic,.heif"
             className="hidden"
-            onChange={handleImageUpload}
+            onChange={handleImageInputChange}
           />
         </div>
 
-        {images.length ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {images.map((img) => (
-              <div
-                key={img.id}
-                className="relative group aspect-square rounded-xl overflow-hidden bg-zinc-100 border border-zinc-100"
-              >
-                <img
-                  src={img.image_url || img.image || ""}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-                <button
-                  onClick={() => handleImageDelete(img.id)}
-                  className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDraggingImg(true);
+          }}
+          onDragEnter={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDraggingImg(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDraggingImg(false);
+          }}
+          onDrop={handleImageDrop}
+          className={`relative rounded-2xl border-2 transition-colors ${
+            isDraggingImg ? "border-[#348b8b] bg-[#348b8b08]" : "border-transparent"
+          }`}
+        >
+          {images.length ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {images.map((img) => (
+                <div
+                  key={img.id}
+                  className="relative group aspect-square rounded-xl overflow-hidden bg-zinc-100 border border-zinc-100"
                 >
-                  <X className="w-3 h-3 text-white" />
-                </button>
+                  <img
+                    src={img.image_url || img.image || ""}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    onClick={() => handleImageDelete(img.id)}
+                    className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                  >
+                    <X className="w-3 h-3 text-white" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <button
+              onClick={() => imageInputRef.current?.click()}
+              className="w-full flex flex-col items-center justify-center py-10 border-2 border-dashed border-zinc-100 rounded-xl text-zinc-400 hover:border-zinc-200 hover:bg-zinc-50 transition-colors"
+            >
+              <ImageIcon className="w-8 h-8 mb-2 text-zinc-300" />
+              <p className="text-sm">Click to upload images</p>
+              <p className="text-xs mt-1 text-zinc-300">
+                JPG, PNG, GIF, WebP, HEIC
+              </p>
+            </button>
+          )}
+
+          {isDraggingImg && (
+            <div className="absolute inset-0 flex items-center justify-center bg-[#348b8b10] rounded-2xl z-10 pointer-events-none">
+              <div className="text-center">
+                <p className="text-[#348b8b] font-semibold text-lg">
+                  Drop images here
+                </p>
+                <p className="text-[#348b8b] text-sm opacity-70">
+                  JPG, PNG, WebP up to 10MB
+                </p>
               </div>
-            ))}
-          </div>
-        ) : (
-          <button
-            onClick={() => imageInputRef.current?.click()}
-            className="w-full flex flex-col items-center justify-center py-10 border-2 border-dashed border-zinc-100 rounded-xl text-zinc-400 hover:border-zinc-200 hover:bg-zinc-50 transition-colors"
-          >
-            <ImageIcon className="w-8 h-8 mb-2 text-zinc-300" />
-            <p className="text-sm">Click to upload images</p>
-            <p className="text-xs mt-1 text-zinc-300">
-              JPG, PNG, GIF, WebP, HEIC
-            </p>
-          </button>
-        )}
+            </div>
+          )}
+        </div>
+        <p className="text-xs text-gray-400 mt-1">
+          JPG, PNG, WebP up to 10MB · Drag & drop or click to upload
+        </p>
       </div>
 
       {/* ── YouTube ── */}
@@ -1275,61 +1366,94 @@ function MediaTab({
             type="file"
             accept="image/*,.pdf,.doc,.docx,.mp4,.mov,.avi,.mkv,.mp3"
             className="hidden"
-            onChange={handleFileUpload}
+            onChange={handleFileInputChange}
           />
         </div>
 
-        {files.length ? (
-          <div className="space-y-2">
-            {files.map((f) => (
-              <div
-                key={f.id}
-                className="flex items-center justify-between py-2.5 border-b border-zinc-50 last:border-0 group"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center shrink-0">
-                    <FileText className="w-4 h-4 text-zinc-400" />
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDraggingFile(true);
+          }}
+          onDragEnter={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDraggingFile(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDraggingFile(false);
+          }}
+          onDrop={handleFileDrop}
+          className={`relative rounded-2xl border-2 transition-colors ${
+            isDraggingFile ? "border-[#348b8b] bg-[#348b8b08]" : "border-transparent"
+          }`}
+        >
+          {files.length ? (
+            <div className="space-y-2">
+              {files.map((f) => (
+                <div
+                  key={f.id}
+                  className="flex items-center justify-between py-2.5 border-b border-zinc-50 last:border-0 group"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center shrink-0">
+                      <FileText className="w-4 h-4 text-zinc-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm text-zinc-700 truncate">
+                        {f.name || "Unnamed file"}
+                      </p>
+                      <p className="text-xs text-zinc-400">{f.file_type}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm text-zinc-700 truncate">
-                      {f.name || "Unnamed file"}
-                    </p>
-                    <p className="text-xs text-zinc-400">{f.file_type}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {(f.file || f.image_url) && (
-                    <a
-                      href={f.file || f.image_url || ""}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-zinc-400 hover:text-zinc-700 transition-colors"
+                  <div className="flex items-center gap-2 shrink-0">
+                    {(f.file || f.image_url) && (
+                      <a
+                        href={f.file || f.image_url || ""}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-zinc-400 hover:text-zinc-700 transition-colors"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    )}
+                    <button
+                      onClick={() => handleFileDelete(f.id)}
+                      className="text-zinc-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                     >
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
-                  )}
-                  <button
-                    onClick={() => handleFileDelete(f.id)}
-                    className="text-zinc-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full flex flex-col items-center justify-center py-8 border-2 border-dashed border-zinc-100 rounded-xl text-zinc-400 hover:border-zinc-200 hover:bg-zinc-50 transition-colors"
-          >
-            <FileText className="w-7 h-7 mb-2 text-zinc-300" />
-            <p className="text-sm">Click to upload files</p>
-            <p className="text-xs mt-1 text-zinc-300">
-              Images, PDF, Word, Video, Audio
-            </p>
-          </button>
-        )}
+              ))}
+            </div>
+          ) : (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full flex flex-col items-center justify-center py-8 border-2 border-dashed border-zinc-100 rounded-xl text-zinc-400 hover:border-zinc-200 hover:bg-zinc-50 transition-colors"
+            >
+              <FileText className="w-7 h-7 mb-2 text-zinc-300" />
+              <p className="text-sm">Click to upload files</p>
+              <p className="text-xs mt-1 text-zinc-300">
+                Images, PDF, Word, Video, Audio
+              </p>
+            </button>
+          )}
+
+          {isDraggingFile && (
+            <div className="absolute inset-0 flex items-center justify-center bg-[#348b8b10] rounded-2xl z-10 pointer-events-none">
+              <p className="text-[#348b8b] font-semibold">
+                Drop file here
+              </p>
+            </div>
+          )}
+        </div>
+        <p className="text-xs text-gray-400 mt-1">
+          PDF, DOC, MP4, MP3 up to 20MB · Drag & drop or click
+        </p>
       </div>
     </div>
   );
